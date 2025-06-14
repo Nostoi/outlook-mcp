@@ -6,7 +6,8 @@
  * Microsoft Outlook through the Microsoft Graph API.
  */
 const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
-const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
+const express = require('express');
+const { SSEServerTransport } = require("@modelcontextprotocol/sdk/server/sse.js");
 const config = require('./config');
 
 // Import module tools
@@ -30,21 +31,22 @@ const TOOLS = [
   // Future modules: contactsTools, etc.
 ];
 
-// Create server with tools capabilities
-const server = new Server(
-  { name: config.SERVER_NAME, version: config.SERVER_VERSION },
-  { 
-    capabilities: { 
-      tools: TOOLS.reduce((acc, tool) => {
-        acc[tool.name] = {};
-        return acc;
-      }, {})
-    } 
-  }
-);
+// Create a server instance configured with our tools
+function createServer() {
+  const server = new Server(
+    { name: config.SERVER_NAME, version: config.SERVER_VERSION },
+    {
+      capabilities: {
+        tools: TOOLS.reduce((acc, tool) => {
+          acc[tool.name] = {};
+          return acc;
+        }, {})
+      }
+    }
+  );
 
-// Handle all requests
-server.fallbackRequestHandler = async (request) => {
+  // Handle all requests
+  server.fallbackRequestHandler = async (request) => {
   try {
     const { method, params, id } = request;
     console.error(`REQUEST: ${method} [${id}]`);
@@ -133,16 +135,50 @@ server.fallbackRequestHandler = async (request) => {
   }
 };
 
+  return server;
+}
+
 // Make the script executable
 process.on('SIGTERM', () => {
-  console.error('SIGTERM received but staying alive');
+  console.error('SIGTERM received, shutting down');
+  process.exit(0);
 });
 
-// Start the server
-const transport = new StdioServerTransport();
-server.connect(transport)
-  .then(() => console.error(`${config.SERVER_NAME} connected and listening`))
-  .catch(error => {
-    console.error(`Connection error: ${error.message}`);
-    process.exit(1);
-  });
+// HTTP server using SSE transport
+const app = express();
+app.use(express.json());
+
+const transports = {};
+
+app.get('/mcp', async (req, res) => {
+  console.error('SSE connection requested');
+  try {
+    const transport = new SSEServerTransport('/messages', res);
+    const sessionId = transport.sessionId;
+    transports[sessionId] = transport;
+    transport.onclose = () => {
+      delete transports[sessionId];
+    };
+
+    const server = createServer();
+    await server.connect(transport);
+  } catch (err) {
+    console.error('Error establishing SSE connection:', err);
+    if (!res.headersSent) res.status(500).send('Error establishing SSE stream');
+  }
+});
+
+app.post('/messages', async (req, res) => {
+  const sessionId = req.query.sessionId;
+  const transport = transports[sessionId];
+  if (!transport) {
+    res.status(404).send('Session not found');
+    return;
+  }
+  await transport.handlePostMessage(req, res, req.body);
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.error(`${config.SERVER_NAME} listening on port ${PORT}`);
+});
