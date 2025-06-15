@@ -109,7 +109,14 @@ Start the server with:
 npm start
 ```
 
-Then connect a compatible MCP client to `http://localhost:3000/mcp` using the HTTP + SSE transport.
+The server listens on port `3499` by default. Set the `PORT` environment
+variable to override this.
+
+Connect a compatible MCP client to `http://localhost:3499/mcp` (or your custom
+port) using the HTTP + SSE transport. The server exposes two endpoints:
+
+- `GET /mcp` to open an SSE connection and start a session
+- `POST /messages?sessionId=<id>` to send client messages
 
 ## Authentication Flow
 
