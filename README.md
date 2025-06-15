@@ -109,7 +109,7 @@ Start the server with:
 npm start
 ```
 
-Then connect a compatible MCP client to `http://localhost:3000/mcp` using the HTTP + SSE transport.
+Then connect a compatible MCP client to `http://localhost:3499/mcp` using the HTTP + SSE transport.
 
 ## Authentication Flow
 

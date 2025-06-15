@@ -178,7 +178,8 @@ app.post('/messages', async (req, res) => {
   await transport.handlePostMessage(req, res, req.body);
 });
 
-const PORT = process.env.PORT || 3000;
+// Use a less common default port than 3000 to avoid local conflicts
+const PORT = process.env.PORT || 3499;
 app.listen(PORT, () => {
   console.error(`${config.SERVER_NAME} listening on port ${PORT}`);
 });
