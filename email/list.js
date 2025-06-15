@@ -4,6 +4,7 @@
 const config = require('../config');
 const { callGraphAPI } = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
+const { cleanEmailBody } = require('../utils/clean-email-body');
 
 /**
  * List emails handler
@@ -37,7 +38,7 @@ async function handleListEmails(args) {
     const queryParams = {
       $top: count,
       $orderby: 'receivedDateTime desc',
-      $select: config.EMAIL_SELECT_FIELDS
+      $select: `${config.EMAIL_SELECT_FIELDS},body`
     };
     
     // Make API call
@@ -57,8 +58,13 @@ async function handleListEmails(args) {
       const sender = email.from ? email.from.emailAddress : { name: 'Unknown', address: 'unknown' };
       const date = new Date(email.receivedDateTime).toLocaleString();
       const readStatus = email.isRead ? '' : '[UNREAD] ';
-      
-      return `${index + 1}. ${readStatus}${date} - From: ${sender.name} (${sender.address})\nSubject: ${email.subject}\nID: ${email.id}\n`;
+      const cleaned = email.body ? cleanEmailBody(
+        email.body.contentType === 'html' ? email.body.content.replace(/<[^>]*>/g, '') : email.body.content,
+        'text'
+      ) : '';
+      const snippet = cleaned ? `${cleaned.slice(0, 100)}...` : '';
+
+      return `${index + 1}. ${readStatus}${date} - From: ${sender.name} (${sender.address})\nSubject: ${email.subject}\n${snippet ? `Preview: ${snippet}\n` : ''}ID: ${email.id}\n`;
     }).join("\n");
     
     return {

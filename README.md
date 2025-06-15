@@ -41,6 +41,7 @@ This is a modular implementation of the Outlook MCP (Model Context Protocol) ser
 - **OData Filter Handling**: Proper escaping and formatting of OData queries
 - **Test Mode**: Simulated responses for testing without real API calls
 - **Streaming SSE Server**: Exposes an HTTP endpoint that streams responses using Server-Sent Events
+- **Reply Parsing**: Email bodies are cleaned with `email-reply-parser` to remove quoted replies and signatures
 
 ## Azure App Registration & Configuration
 
