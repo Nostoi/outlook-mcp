@@ -40,6 +40,7 @@ This is a modular implementation of the Outlook MCP (Model Context Protocol) ser
 - **Modular Structure**: Clean separation of concerns for better maintainability
 - **OData Filter Handling**: Proper escaping and formatting of OData queries
 - **Test Mode**: Simulated responses for testing without real API calls
+- **Streaming SSE Server**: Exposes an HTTP endpoint that streams responses using Server-Sent Events
 
 ## Azure App Registration & Configuration
 
@@ -102,13 +103,20 @@ To configure the server, edit the `config.js` file to change:
 
 ## Running Standalone
 
-You can test the server using:
+Start the server with:
 
 ```bash
-./test-modular-server.sh
+npm start
 ```
 
-This will use the MCP Inspector to directly connect to the server and let you test the available tools.
+The server listens on port `3499` by default. Set the `PORT` environment
+variable to override this.
+
+Connect a compatible MCP client to `http://localhost:3499/mcp` (or your custom
+port) using the HTTP + SSE transport. The server exposes two endpoints:
+
+- `GET /mcp` to open an SSE connection and start a session
+- `POST /messages?sessionId=<id>` to send client messages
 
 ## Authentication Flow
 
