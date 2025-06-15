@@ -4,6 +4,7 @@
 const config = require('../config');
 const { callGraphAPI } = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
+const { cleanEmailBody } = require('../utils/clean-email-body');
 
 /**
  * Read email handler
@@ -53,15 +54,15 @@ async function handleReadEmail(args) {
       const bcc = email.bccRecipients && email.bccRecipients.length > 0 ? email.bccRecipients.map(r => `${r.emailAddress.name} (${r.emailAddress.address})`).join(", ") : 'None';
       const date = new Date(email.receivedDateTime).toLocaleString();
       
-      // Extract body content
+      // Extract and clean body content
       let body = '';
       if (email.body) {
-        body = email.body.contentType === 'html' ? 
-          // Simple HTML-to-text conversion for HTML bodies
-          email.body.content.replace(/<[^>]*>/g, '') : 
-          email.body.content;
+        const rawText = email.body.contentType === 'html'
+          ? email.body.content.replace(/<[^>]*>/g, '')
+          : email.body.content;
+        body = cleanEmailBody(rawText, 'text');
       } else {
-        body = email.bodyPreview || 'No content';
+        body = email.bodyPreview ? cleanEmailBody(email.bodyPreview, 'text') : 'No content';
       }
       
       // Format the email
